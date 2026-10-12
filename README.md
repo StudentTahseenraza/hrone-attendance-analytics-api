@@ -165,14 +165,14 @@ MONGO_URI=mongodb://localhost:27017
 MONGO_DB=attendance_db
 ```
 
-For MongoDB Atlas, use your own connection string:
+For MongoDB Atlas, set your connection string locally in `.env`:
 
 ```dotenv
-MONGO_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@YOUR_CLUSTER.mongodb.net/?retryWrites=true&w=majority
+MONGO_URI=<your-mongodb-atlas-connection-string>
 MONGO_DB=attendance_db
 ```
 
-Replace the example credentials and cluster name with your actual values.
+Replace the placeholder locally with your Atlas connection string. Do not put real credentials in this README or commit them to GitHub.
 
 ### Environment Variables
 
@@ -372,7 +372,7 @@ The reported local test run produced:
 ```text
 .................                                                        [100%]
 
-17 passed, 1 warning in 2.33s
+17 passed, 1 warning in 2.47s
 ```
 
 All 17 automated tests passed. One `StarletteDeprecationWarning` was reported concerning the use of `httpx` with `starlette.testclient`. It did not cause the tests to fail.
@@ -392,34 +392,34 @@ The following endpoint responses were reported during Swagger UI testing against
 | `GET /analytics/leaderboard/late` | 200 |
 | `GET /analytics/departments/{department}/trend` | 200 |
 | `GET /admin/explain/attendance_list` | 200 |
+| `GET /admin/explain/employee_monthly` | 200 (tested with required parameters) |
 | `GET /admin/explain/department_summary` | 200 |
 | `GET /admin/explain/late_leaderboard` | 200 |
 | `GET /admin/explain/department_trend` | 200 |
 
-The tests included employee creation, punch-in, punch-out, attendance listing, monthly analytics, department summaries, the late leaderboard, department trends, and MongoDB explain inspection.
+The tests included employee creation, punch-in, punch-out, attendance listing, monthly analytics, department summaries, the late leaderboard, department trends, and MongoDB explain inspection. The API and explain endpoints were tested against the MongoDB Atlas database that contained approximately 100,000 attendance records at the time of testing.
 
 ## MongoDB Explain Plan Results
 
 The explain endpoint executes the main query or aggregation pipeline used by the corresponding API endpoint with MongoDB's `executionStats` verbosity.
 
-The reported explain-plan checks showed:
+The five explain endpoint types were tested against the Atlas database containing approximately 100,000 attendance records. The inspected results shared during testing included:
 
 - **Attendance list:** `IXSCAN` using `ix_date_emp`, with no collection scans reported in the inspected plan.
 - **Department summary:** Index usage was reported for the employee query and attendance lookup, with zero collection scans reported in the inspected plan.
 - **Late leaderboard:** Index usage was reported in the inspected execution stages.
 - **Department trend:** `IXSCAN` using `ix_date_emp` was observed in the inspected plan.
+- **Employee monthly:** The explain endpoint was tested with its required `emp_code` and `month` parameters. Record its specific winning-plan details only if you have verified them in the saved response.
 
-These observations confirm index usage in the inspected plans. They do not, by themselves, establish performance for every query shape or a 100,000-record dataset.
+These are observations from the plans inspected. Check each endpoint's winning plan and execution statistics before claiming that every query uses an index or avoids `COLLSCAN`.
 
 ### Large-Dataset Testing
 
-The assignment's `openapi.yaml` specifies that explain plans are evaluated on a dataset of approximately 100,000 attendance records.
+The API and the five explain endpoint types were tested against MongoDB Atlas after approximately 100,000 attendance records had been inserted into that database. The large dataset was already present during this testing; this README does not claim a separate local load test.
 
-The supplied sample data is intended for functional testing. A separate load-test script, `load_test_seed.py`, is included for generating a larger test dataset.
+The reported checks covered attendance listing, employee monthly analytics, department summary, late leaderboard, and department trend. The recorded explain-plan observations are listed above.
 
-Before running the script, configure `MONGO_URI` and set `MONGO_DB` to a dedicated test database, such as `hrone_loadtest`. The script requires `MONGO_URI` to be available in its environment.
-
-The large-dataset benchmark should be documented after the dataset has been seeded successfully and the explain plans have been inspected against that dataset. The results above describe the tests reported so far and do not claim a completed 100,000-record benchmark.
+No latency, throughput, or comparative performance benchmark is claimed unless those metrics were separately measured and recorded.
 
 ## Sample Data
 
@@ -474,6 +474,8 @@ Interactive API documentation is available through Swagger UI and ReDoc when the
 
 ## Project Status
 
-The reported automated test run completed with 17 passing tests and one non-blocking deprecation warning. Multiple API endpoints and explain-plan checks were also reported successful against the configured MongoDB connection.
-
-Large-dataset performance validation should be recorded separately once the approximately 100,000-record test dataset has been seeded and the relevant execution plans have been verified.
+- **Automated tests:** 17 passed, with one non-blocking Starlette deprecation warning in the latest reported run.
+- **Live API testing:** Employee, attendance, analytics, and explain endpoints were tested through Swagger UI against MongoDB Atlas.
+- **Large dataset:** Approximately 100,000 attendance records were present in the Atlas database during the reported API and explain-plan testing.
+- **Explain plans:** Inspected results are summarized in the MongoDB Explain Plan Results section. The specific winning-plan result for each query should be checked against its saved response before making a blanket claim about index usage.
+- **Performance metrics:** No latency or throughput benchmark is claimed unless measured separately and recorded.
